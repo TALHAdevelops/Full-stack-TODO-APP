@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls:*)",
+      "Bash(taskkill:*)",
+      "Bash(uvicorn:*)",
+      "Bash(npm run dev:*)",
+      "Bash(dir:*)",
+      "Bash(backend/venv/Scripts/uvicorn:*)",
+      "Bash(backend/venv/Scripts/pip install:*)",
+      "Bash(backend\\\\venv\\\\Scripts\\\\pip:*)",
+      "Bash(\"./backend/venv/Scripts/pip\" list)",
+      "Bash(\"./backend/venv/Scripts/pip\" install better-auth python-multipart)",
+      "Bash(\"./backend/venv/Scripts/pip\" install better-auth python-multipart --default-timeout=100)",
+      "Bash(printf:*)",
+      "Bash(\"./backend/venv/Scripts/python\" create_test_user.py)",
+      "Bash(\"./backend/venv/Scripts/pip\" show -f better-auth)",
+      "Bash(\"./backend/venv/Scripts/pip\" install better-auth==1.4.10)",
+      "Bash(cat:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(\"./backend/venv/Scripts/uvicorn\" backend.main:app --port 8000)",
+      "Bash(python:*)",
+      "Bash(npm install:*)",
+      "Bash(./backend/venv/Scripts/uvicorn:*)",
+      "Bash(npm run build:*)"
+    ]
+  }
+}
