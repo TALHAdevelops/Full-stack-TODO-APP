@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.db import create_db_and_tables
-from backend.routes import tasks, auth_routes, users
-from backend.config import settings
+
+from db import create_db_and_tables
+from routes import tasks, auth_routes, users
+from config import settings
 
 app = FastAPI(
     title="TaskFlow API",
@@ -23,11 +24,6 @@ app.add_middleware(
 app.include_router(tasks.router)
 app.include_router(auth_routes.router)
 app.include_router(users.router)
-
-@app.on_event("startup")
-def on_startup():
-    """Create database tables on startup"""
-    create_db_and_tables()
 
 @app.get("/")
 def read_root():
