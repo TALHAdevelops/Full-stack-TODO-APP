@@ -2,18 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List
 from datetime import datetime
-
-try:  # Support both package and standalone execution
-    from models import Task  # type: ignore
-    from schemas import TaskCreate, TaskUpdate, TaskResponse  # type: ignore
-    from db import get_session  # type: ignore
-    from auth import verify_token  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
-    from ..models import Task
-    from ..schemas import TaskCreate, TaskUpdate, TaskResponse
-    from ..db import get_session
-    from ..auth import verify_token
-
+from models import Task
+from schemas import TaskCreate, TaskUpdate, TaskResponse
+from db import get_session
+from auth import verify_token
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 

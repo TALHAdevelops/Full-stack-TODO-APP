@@ -5,19 +5,11 @@ import bcrypt
 import jwt
 import os
 from datetime import datetime, timedelta, timezone
-
-try:  # Support both package and standalone execution
-    from models import User  # type: ignore
-    from db import get_session  # type: ignore
-    from config import settings  # type: ignore
-    from schemas import UserCreate, UserResponse  # type: ignore
-    from auth import verify_token  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
-    from ..models import User
-    from ..db import get_session
-    from ..config import settings
-    from ..schemas import UserCreate, UserResponse
-    from ..auth import verify_token
+from models import User
+from db import get_session
+from config import settings
+from schemas import UserCreate, UserResponse
+from auth import verify_token
 
 
 def hash_password(password: str) -> str:
@@ -61,10 +53,10 @@ async def register_user(user_data: UserCreate, session: Session = Depends(get_se
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    
+
     # Hash password
     hashed_password = hash_password(user_data.password)
-    
+
     # Create user
     new_user = User(
         id=f"user-{os.urandom(4).hex()}",
@@ -72,23 +64,23 @@ async def register_user(user_data: UserCreate, session: Session = Depends(get_se
         name=user_data.name or "",
         password_hash=hashed_password,
     )
-    
+
     session.add(new_user)
     session.commit()
     session.refresh(new_user)
-    
+
     # Generate token
     expire = datetime.now(timezone.utc) + timedelta(minutes=30)
     to_encode = {"sub": new_user.id, "exp": expire}
     encoded_jwt = jwt.encode(to_encode, settings.BETTER_AUTH_SECRET, algorithm="HS256")
-    
+
     user_response = {
         "id": new_user.id,
         "email": new_user.email,
         "name": new_user.name,
         "created_at": new_user.created_at.isoformat()
     }
-    
+
     return {"access_token": encoded_jwt, "token_type": "bearer", "user": user_response}
 
 @router.post("/token")
@@ -108,7 +100,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     to_encode = {"sub": user.id, "exp": expire}
     encoded_jwt = jwt.encode(to_encode, settings.BETTER_AUTH_SECRET, algorithm="HS256")
 
-    # Return a structure that includes the user object for the frontend
+    # Return a structure that includes user object for frontend
     user_data = {
         "id": user.id,
         "email": user.email,
