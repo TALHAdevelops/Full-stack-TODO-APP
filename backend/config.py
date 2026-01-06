@@ -19,13 +19,24 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     BETTER_AUTH_SECRET: str
     FRONTEND_URL: str = "http://localhost:3000"
+    VERCEL_URL: str = ""  # Vercel provides this in production
 
     model_config = SettingsConfigDict(**_settings_config)
 
     @property
     def cors_origins(self) -> List[str]:
-        """Return sanitized CORS origins list."""
+        """Return sanitized CORS origins list including production Vercel domain."""
         raw_origins = [origin.strip() for origin in self.FRONTEND_URL.split(",")]
+
+        # Add Vercel production URL if available
+        if self.VERCEL_URL:
+            vercel_prod_url = f"https://{self.VERCEL_URL}"
+            if vercel_prod_url not in raw_origins:
+                raw_origins.append(vercel_prod_url)
+
+        # Also allow any Vercel preview URL pattern
+        raw_origins.append("https://*.vercel.app")
+
         return [origin for origin in raw_origins if origin]
 
 

@@ -23,7 +23,8 @@
       "Bash(npm install:*)",
       "Bash(./backend/venv/Scripts/uvicorn:*)",
       "Bash(npm run build:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(./venv/Scripts/python -c \"from main import app; print\\(''Backend app loaded successfully:'', app.title\\)\")"
     ]
   }
 }

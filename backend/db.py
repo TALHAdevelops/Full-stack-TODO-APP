@@ -12,7 +12,6 @@ engine = create_engine(
     pool_pre_ping=True,
     pool_size=1,
     max_overflow=5,
-    connect_args={"options": "-c statement_timeout=5000"},
 )
 
 
