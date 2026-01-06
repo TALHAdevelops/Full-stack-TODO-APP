@@ -3,9 +3,9 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
 try:
-    from backend.config import settings  # type: ignore
+    from config import settings  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
-    from .config import settings
+    from config import settings
 
 security = HTTPBearer()
 

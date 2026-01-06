@@ -1,9 +1,9 @@
 from sqlmodel import SQLModel, Session, create_engine
 
 try:  # Support both package and direct execution contexts
-    from backend.config import settings  # type: ignore
+    from config import settings  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
-    from .config import settings  # type: ignore
+    from config import settings  # type: ignore
 
 # Create engine tuned for serverless deployments (Neon with pooled connections)
 engine = create_engine(

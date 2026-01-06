@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 try:  # Support both package and standalone execution
-    from backend.db import create_db_and_tables  # type: ignore
-    from backend.routes import tasks, auth_routes, users  # type: ignore
-    from backend.config import settings  # type: ignore
+    from db import create_db_and_tables  # type: ignore
+    from routes import tasks, auth_routes, users  # type: ignore
+    from config import settings  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
     from db import create_db_and_tables
     from routes import tasks, auth_routes, users

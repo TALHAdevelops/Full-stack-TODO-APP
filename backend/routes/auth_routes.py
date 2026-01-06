@@ -7,11 +7,11 @@ import os
 from datetime import datetime, timedelta, timezone
 
 try:  # Support both package and standalone execution
-    from backend.models import User  # type: ignore
-    from backend.db import get_session  # type: ignore
-    from backend.config import settings  # type: ignore
-    from backend.schemas import UserCreate, UserResponse  # type: ignore
-    from backend.auth import verify_token  # type: ignore
+    from models import User  # type: ignore
+    from db import get_session  # type: ignore
+    from config import settings  # type: ignore
+    from schemas import UserCreate, UserResponse  # type: ignore
+    from auth import verify_token  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
     from ..models import User
     from ..db import get_session

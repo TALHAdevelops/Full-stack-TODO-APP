@@ -4,9 +4,9 @@ import bcrypt
 import os
 
 try:  # Support both package and standalone execution
-    from backend.models import User  # type: ignore
-    from backend.schemas import UserCreate, UserResponse  # type: ignore
-    from backend.db import get_session  # type: ignore
+    from models import User  # type: ignore
+    from schemas import UserCreate, UserResponse  # type: ignore
+    from db import get_session  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover
     from ..models import User
     from ..schemas import UserCreate, UserResponse
