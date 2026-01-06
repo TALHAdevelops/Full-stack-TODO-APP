@@ -22,7 +22,8 @@
       "Bash(python:*)",
       "Bash(npm install:*)",
       "Bash(./backend/venv/Scripts/uvicorn:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(git add:*)"
     ]
   }
 }
