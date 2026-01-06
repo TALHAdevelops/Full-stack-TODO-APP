@@ -1,16 +1,39 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
-from better_auth.utils import verifyPassword, hashPassword
+import bcrypt
 import jwt
 import os
 from datetime import datetime, timedelta, timezone
 
-from ..models import User
-from ..db import get_session
-from ..config import settings
-from ..schemas import UserCreate, UserResponse
-from ..auth import verify_token
+try:  # Support both package and standalone execution
+    from backend.models import User  # type: ignore
+    from backend.db import get_session  # type: ignore
+    from backend.config import settings  # type: ignore
+    from backend.schemas import UserCreate, UserResponse  # type: ignore
+    from backend.auth import verify_token  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from ..models import User
+    from ..db import get_session
+    from ..config import settings
+    from ..schemas import UserCreate, UserResponse
+    from ..auth import verify_token
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
+
+
+def verify_password(password: str, hashed_password: str) -> bool:
+    """Verify a password against a hashed match."""
+    try:
+        return bcrypt.checkpw(password.encode("utf-8"), hashed_password.encode("utf-8"))
+    except Exception:
+        return False
+
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -40,7 +63,7 @@ async def register_user(user_data: UserCreate, session: Session = Depends(get_se
         )
     
     # Hash password
-    hashed_password = hashPassword(user_data.password)
+    hashed_password = hash_password(user_data.password)
     
     # Create user
     new_user = User(
@@ -74,7 +97,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     statement = select(User).where(User.email == form_data.username)
     user = session.exec(statement).first()
 
-    if not user or not verifyPassword(form_data.password, user.password_hash):
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",

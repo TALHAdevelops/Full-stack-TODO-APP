@@ -1,13 +1,26 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from sqlmodel import Session, select
-from better_auth.utils import hashPassword
+import bcrypt
 import os
 
-from ..models import User
-from ..schemas import UserCreate, UserResponse
-from ..db import get_session
+try:  # Support both package and standalone execution
+    from backend.models import User  # type: ignore
+    from backend.schemas import UserCreate, UserResponse  # type: ignore
+    from backend.db import get_session  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from ..models import User
+    from ..schemas import UserCreate, UserResponse
+    from ..db import get_session
 
 router = APIRouter(prefix="/api", tags=["users"])
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode("utf-8"), salt)
+    return hashed.decode("utf-8")
+
 
 @router.post("/users", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user_data: UserCreate, session: Session = Depends(get_session)):
@@ -18,8 +31,8 @@ async def create_user(user_data: UserCreate, session: Session = Depends(get_sess
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered",
         )
-    
-    hashed_password = hashPassword(user_data.password)
+
+    hashed_password = hash_password(user_data.password)
 
     new_user = User(
         id=f"user-{os.urandom(4).hex()}",

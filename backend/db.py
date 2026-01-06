@@ -1,22 +1,32 @@
-from sqlmodel import create_engine, SQLModel, Session
-from .config import settings
+from sqlmodel import SQLModel, Session, create_engine
 
-# Create engine with Neon PostgreSQL connection
-# Note: Neon requires sslmode=require which should be in DATABASE_URL
+try:  # Support both package and direct execution contexts
+    from backend.config import settings  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from .config import settings  # type: ignore
+
+# Create engine tuned for serverless deployments (Neon with pooled connections)
 engine = create_engine(
     settings.DATABASE_URL,
-    echo=False,  # Log SQL queries (disable in production)
-    pool_pre_ping=True,  # Verify connections before use
-    pool_size=5,  # Connection pool size
-    max_overflow=10  # Maximum overflow connections
+    echo=False,
+    pool_pre_ping=True,
+    pool_size=1,
+    max_overflow=5,
+    connect_args={"options": "-c statement_timeout=5000"},
 )
 
-def create_db_and_tables():
-    """Create all database tables"""
-    from . import models  # Ensure models are registered
+
+def create_db_and_tables() -> None:
+    """Create all database tables when the app starts."""
+    try:
+        from backend import models  # type: ignore
+    except ModuleNotFoundError:  # pragma: no cover
+        from . import models  # type: ignore
+
     SQLModel.metadata.create_all(engine)
 
+
 def get_session():
-    """Dependency for getting database session"""
+    """FastAPI dependency yielding a database session."""
     with Session(engine) as session:
         yield session

@@ -3,10 +3,17 @@ from sqlmodel import Session, select
 from typing import List
 from datetime import datetime
 
-from ..models import Task
-from ..schemas import TaskCreate, TaskUpdate, TaskResponse
-from ..db import get_session
-from ..auth import verify_token
+try:  # Support both package and standalone execution
+    from backend.models import Task  # type: ignore
+    from backend.schemas import TaskCreate, TaskUpdate, TaskResponse  # type: ignore
+    from backend.db import get_session  # type: ignore
+    from backend.auth import verify_token  # type: ignore
+except ModuleNotFoundError:  # pragma: no cover
+    from ..models import Task
+    from ..schemas import TaskCreate, TaskUpdate, TaskResponse
+    from ..db import get_session
+    from ..auth import verify_token
+
 
 router = APIRouter(prefix="/api", tags=["tasks"])
 
