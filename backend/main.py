@@ -1,6 +1,6 @@
 """TaskFlow API - FastAPI entry point for Vercel deployment."""
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from db import create_db_and_tables
 from routes import tasks, auth_routes, users
@@ -13,21 +13,21 @@ app = FastAPI(
     description="Phase 2: Multi-user Todo API with authentication",
 )
 
-# Configure CORS origins
-cors_origins = settings.cors_origins or ["http://localhost:3000"]
+# Configure CORS origins - explicitly list allowed origins
+cors_origins = [
+    "http://localhost:3000",
+    "https://talha-taskflow-web.vercel.app",
+]
 
-# Add production frontend explicitly if not in list
-if "https://talha-taskflow-web.vercel.app" not in cors_origins:
-    cors_origins.append("https://talha-taskflow-web.vercel.app")
-
-# CORS middleware
+# CORS middleware - must be added before routes
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
     expose_headers=["*"],
+    max_age=3600,
 )
 
 # Include routers
