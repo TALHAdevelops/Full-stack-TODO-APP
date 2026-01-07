@@ -13,7 +13,12 @@ app = FastAPI(
     description="Phase 2: Multi-user Todo API with authentication",
 )
 
+# Configure CORS origins
 cors_origins = settings.cors_origins or ["http://localhost:3000"]
+
+# Add production frontend explicitly if not in list
+if "https://talha-taskflow-web.vercel.app" not in cors_origins:
+    cors_origins.append("https://talha-taskflow-web.vercel.app")
 
 # CORS middleware
 app.add_middleware(
@@ -22,6 +27,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Include routers
