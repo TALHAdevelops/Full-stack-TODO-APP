@@ -10,7 +10,6 @@ A production-ready, multi-user task management application with secure authentic
 ## 🚀 Live Demo
 
 - **Frontend**: [https://talha-taskflow-web.vercel.app/](https://talha-taskflow-web.vercel.app/)
-- **Backend API**: [https://talha-taskflow-backend.vercel.app/](https://talha-taskflow-backend.vercel.app/)
 
 ## ✨ Features
 
