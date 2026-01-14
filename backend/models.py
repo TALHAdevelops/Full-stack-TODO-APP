@@ -1,6 +1,9 @@
 from sqlmodel import Field, SQLModel, Relationship
 from datetime import datetime
 from typing import Optional, List
+from uuid import UUID, uuid4
+from sqlalchemy import JSON
+import json
 
 class User(SQLModel, table=True):
     """User model (managed by Better Auth, defined here for relationships)"""
@@ -29,3 +32,42 @@ class Task(SQLModel, table=True):
 
     # Relationship
     user: User = Relationship(back_populates="tasks")
+
+
+class Conversation(SQLModel, table=True):
+    """Conversation model for storing chat conversations
+
+    @spec: T-301 (spec.md §1.0, plan.md §1)
+    """
+    __tablename__ = "conversations"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    title: Optional[str] = Field(default=None)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationship
+    messages: List["Message"] = Relationship(
+        back_populates="conversation",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+
+class Message(SQLModel, table=True):
+    """Message model for storing conversation messages
+
+    @spec: T-302 (spec.md §1.0, plan.md §1)
+    """
+    __tablename__ = "messages"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    conversation_id: UUID = Field(foreign_key="conversations.id", index=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    role: str = Field(index=True)  # "user" or "assistant"
+    content: str
+    tool_calls: Optional[str] = Field(default=None)  # JSON stored as string
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationship
+    conversation: Conversation = Relationship(back_populates="messages")

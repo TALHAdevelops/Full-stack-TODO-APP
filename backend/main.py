@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from db import create_db_and_tables
-from routes import tasks, auth_routes, users
+from routes import tasks, auth_routes, users, chat
 from config import settings
 
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(tasks.router)
 app.include_router(auth_routes.router)
 app.include_router(users.router)
+app.include_router(chat.router)
 
 
 @app.on_event("startup")
