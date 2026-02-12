@@ -1,0 +1,569 @@
+# Phase IV Implementation Guidelines
+
+**Feature**: TaskFlow Local Kubernetes Deployment
+**Branch**: `001-kubernetes`
+**Created**: 2026-02-08
+**Version**: 1.0.0
+
+---
+
+## Project Overview
+
+**Phase IV Goal**: Deploy the Phase III TaskFlow application (Next.js frontend + FastAPI backend + Neon DB) to a local Minikube Kubernetes cluster with full automation.
+
+**Technology Stack**:
+- **Containerization**: Docker (multi-stage builds)
+- **Orchestration**: Minikube (local Kubernetes)
+- **Package Management**: Helm 3
+- **CLI Tools**: kubectl, docker, helm, minikube
+- **Database**: Neon PostgreSQL (external, not containerized)
+
+**Automation Philosophy**: Claude Code executes ALL infrastructure commands automatically. The user never copy-pastes commands.
+
+**User Responsibilities** (minimal):
+1. **One-time setup**: Install Docker Desktop, Minikube, kubectl, Helm (before starting)
+2. **One-time**: Start Minikube (once per session)
+3. **Provide secrets**: Supply DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY values when prompted
+4. **Final testing**: Open browser to http://localhost:3000 and verify all features work
+
+---
+
+## Spec Architecture
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| **Constitution** | `.specify/memory/constitution.md` | Project principles (XIII-XVII for K8s) |
+| **Specification** | `specs/001-kubernetes/spec.md` | Feature requirements (FR-401 to FR-480) |
+| **Plan** | `specs/001-kubernetes/plan.md` | Technical design and phase breakdown |
+| **Tasks** | `specs/001-kubernetes/tasks.md` | Task breakdown (T-401 to T-437) |
+| **Docker Contracts** | `specs/001-kubernetes/contracts/docker-contracts.md` | Dockerfile specifications |
+| **Helm Contracts** | `specs/001-kubernetes/contracts/helm-contracts.md` | Helm chart specifications |
+
+---
+
+## Implementation State
+
+| Phase | Task Range | Description | Automation Level |
+|-------|------------|-------------|------------------|
+| **A** | T-401 to T-410 | Docker Setup | Claude Code writes Dockerfiles AND executes `docker build` |
+| **B** | T-411 to T-425 | Helm Charts | Claude Code writes all Helm templates AND runs `helm lint` |
+| **C** | T-426 to T-435 | Minikube Deployment | Claude Code executes ALL kubectl/helm commands |
+| **D** | T-436 to T-437 | Testing & Docs | User tests in browser; Claude writes documentation |
+
+---
+
+## Key Technical Decisions
+
+### 1. Container-First Design
+- All components run in Docker containers
+- Multi-stage builds reduce image sizes
+- Alpine/slim base images for minimal footprint
+- No hardcoded configuration in containers
+
+### 2. Helm as Infrastructure as Code
+- All K8s resources defined in Helm chart templates
+- Values-driven configuration (values.yaml, values-dev.yaml)
+- Declarative, reproducible deployments
+- Idempotent operations via `helm upgrade --install`
+
+### 3. Multi-Stage Docker Builds
+- **Frontend**: node:20-alpine builder → node:20-alpine runtime (<200MB)
+- **Backend**: python:3.13-slim builder → python:3.13-slim runtime (<300MB)
+- Build dependencies excluded from final images
+
+### 4. Command Automation (Principle XVII)
+- Claude Code executes ALL infrastructure commands
+- User does NOT copy-paste commands
+- Progress feedback at each step
+- Error handling with automatic retry or escalation
+
+### 5. External Database
+- Neon PostgreSQL remains external (not containerized)
+- Connection via DATABASE_URL in K8s Secret
+- No state management complexity in K8s
+
+---
+
+## Code Patterns for Claude Code
+
+### Dockerfile Pattern (Frontend)
+
+```dockerfile
+# Stage 1: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production=false
+COPY . .
+RUN npm run build
+
+# Stage 2: Runner
+FROM node:20-alpine AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+USER nextjs
+EXPOSE 3000
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+CMD ["node", "server.js"]
+```
+
+### Dockerfile Pattern (Backend)
+
+```dockerfile
+# Stage 1: Builder
+FROM python:3.13-slim AS builder
+WORKDIR /app
+RUN pip install --no-cache-dir --upgrade pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Stage 2: Runner
+FROM python:3.13-slim AS runner
+WORKDIR /app
+COPY --from=builder /usr/local/lib/python3.13/site-packages /usr/local/lib/python3.13/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY . .
+RUN useradd --create-home --shell /bin/bash appuser
+USER appuser
+EXPOSE 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+### Helm Chart Structure
+
+```
+helm/
+├── Chart.yaml              # name: taskflow, version: 1.0.0
+├── values.yaml             # Default values (replicas, images, resources)
+├── values-dev.yaml         # Dev overrides (replicas=1, pullPolicy=Never)
+└── templates/
+    ├── _helpers.tpl        # Template helpers (labels, selectors)
+    ├── frontend-deployment.yaml
+    ├── frontend-service.yaml
+    ├── backend-deployment.yaml
+    ├── backend-service.yaml
+    ├── configmap.yaml
+    ├── secrets.yaml        # Placeholder (real secrets via kubectl)
+    └── NOTES.txt           # Post-install instructions
+```
+
+### K8s Deployment Pattern
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "taskflow.fullname" . }}-frontend
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+spec:
+  replicas: {{ .Values.frontend.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "taskflow.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: frontend
+  template:
+    metadata:
+      labels:
+        {{- include "taskflow.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image.repository }}:{{ .Values.frontend.image.tag }}"
+          imagePullPolicy: {{ .Values.frontend.image.pullPolicy }}
+          ports:
+            - containerPort: 3000
+          resources:
+            {{- toYaml .Values.frontend.resources | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+```
+
+### K8s Service Pattern
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "taskflow.fullname" . }}-frontend
+  labels:
+    {{- include "taskflow.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.frontend.service.type }}
+  ports:
+    - port: {{ .Values.frontend.service.port }}
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "taskflow.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: frontend
+```
+
+---
+
+## Implementation Workflow
+
+### For EACH Task (T-401, T-402, ...)
+
+```
+Step 1: ANNOUNCE
+   → "Implementing [Task Name] (T-XXX)"
+
+Step 2: READ CONTEXT
+   → Read relevant sections from spec.md and plan.md
+   → Read contracts if applicable
+
+Step 3: WRITE CODE
+   → Follow code patterns above
+   → Ensure no hardcoded secrets
+   → Add proper labels and selectors
+
+Step 4: VERIFY ACCEPTANCE CRITERIA
+   → Check task acceptance criteria in tasks.md
+   → Ensure all criteria will be met
+
+IF task requires command execution:
+   Step 5: EXECUTE COMMAND
+      → Run docker build, helm install, kubectl, etc.
+      → Capture output
+
+   Step 6: VERIFY SUCCESS
+      → Check command exit code
+      → Run verification command (docker images, kubectl get pods, etc.)
+      → Report result to user
+
+Step 7: MARK COMPLETE
+   → Update task status in tasks.md: [ ] → [x]
+```
+
+### Example Workflow for T-403 (Build Frontend Image)
+
+```
+1. ANNOUNCE: "Implementing Build frontend Docker image (T-403)"
+
+2. READ: T-403 acceptance criteria from tasks.md
+
+3. VERIFY: Dockerfile exists from T-402
+
+4. EXECUTE: docker build -t taskflow-frontend:1.0.0 ./frontend
+
+5. VERIFY: docker images | findstr taskflow-frontend
+
+6. REPORT: "Frontend image built successfully (X.XMB)"
+
+7. MARK: T-403 [x] in tasks.md
+```
+
+---
+
+## Commands Claude Code WILL EXECUTE
+
+### Phase A: Docker Setup
+
+```powershell
+# Build images
+docker build -t taskflow-frontend:1.0.0 ./frontend
+docker build -t taskflow-backend:1.0.0 ./backend
+
+# Verify images exist
+docker images | findstr taskflow
+
+# Check image sizes
+docker images taskflow-frontend:1.0.0 --format "{{.Size}}"
+docker images taskflow-backend:1.0.0 --format "{{.Size}}"
+
+# Test containers standalone (optional)
+docker run -d -p 3000:3000 --name test-frontend taskflow-frontend:1.0.0
+docker run -d -p 8000:8000 -e DATABASE_URL=placeholder --name test-backend taskflow-backend:1.0.0
+docker logs test-frontend
+docker logs test-backend
+docker stop test-frontend test-backend
+docker rm test-frontend test-backend
+```
+
+### Phase B: Helm Validation
+
+```powershell
+# Lint Helm chart
+helm lint ./helm/
+
+# Template dry-run (verify output)
+helm template taskflow ./helm/ -f ./helm/values-dev.yaml
+```
+
+### Phase C: Minikube Deployment
+
+```powershell
+# Verify Minikube status
+minikube status
+
+# Load images into Minikube
+minikube image load taskflow-frontend:1.0.0
+minikube image load taskflow-backend:1.0.0
+
+# Verify images loaded
+minikube image ls | findstr taskflow
+
+# Create secrets (user provides values)
+kubectl create secret generic taskflow-secrets `
+  --from-literal=database-url="<USER_PROVIDED>" `
+  --from-literal=better-auth-secret="<USER_PROVIDED>" `
+  --from-literal=openai-api-key="<USER_PROVIDED>"
+
+# Deploy with Helm
+helm upgrade --install taskflow ./helm/ -f ./helm/values-dev.yaml
+
+# Watch pods reach Running state
+kubectl get pods -w
+
+# Verify all resources
+kubectl get all -l app.kubernetes.io/name=taskflow
+
+# Check pod logs (debugging)
+kubectl logs -l app.kubernetes.io/component=frontend
+kubectl logs -l app.kubernetes.io/component=backend
+
+# Setup port forwarding (in separate terminals/background)
+kubectl port-forward svc/taskflow-frontend 3000:80
+kubectl port-forward svc/taskflow-backend 8000:8000
+```
+
+### Cleanup Commands (when needed)
+
+```powershell
+# Uninstall Helm release
+helm uninstall taskflow
+
+# Delete secrets
+kubectl delete secret taskflow-secrets
+
+# Remove images from Minikube
+minikube image rm taskflow-frontend:1.0.0
+minikube image rm taskflow-backend:1.0.0
+
+# Remove local Docker images
+docker rmi taskflow-frontend:1.0.0
+docker rmi taskflow-backend:1.0.0
+```
+
+---
+
+## Important Constraints
+
+| # | Constraint | Enforcement |
+|---|------------|-------------|
+| 1 | **No hardcoded secrets** | Secrets in K8s Secrets only; never in Dockerfiles, Helm values, or git |
+| 2 | **No 'latest' tags** | Always use semantic versioning (e.g., 1.0.0) |
+| 3 | **All containers labeled** | `app.kubernetes.io/name`, `app.kubernetes.io/component` on all resources |
+| 4 | **Resource limits defined** | CPU and memory requests/limits on all deployments |
+| 5 | **Multi-stage Docker builds** | REQUIRED for both frontend and backend |
+| 6 | **Health probes required** | Liveness and readiness probes on all containers |
+| 7 | **Non-root containers** | Containers run as non-root user |
+| 8 | **Image size limits** | Frontend <200MB, Backend <300MB |
+| 9 | **Command automation** | Claude Code executes ALL commands; user never copy-pastes |
+| 10 | **Idempotent operations** | Commands safe to re-run; use `helm upgrade --install` |
+
+---
+
+## What User Does Manually
+
+### One-Time Tool Installation (Before Starting)
+
+1. **Install Docker Desktop**: https://www.docker.com/products/docker-desktop/
+2. **Install Minikube**: https://minikube.sigs.k8s.io/docs/start/
+3. **Install kubectl**: https://kubernetes.io/docs/tasks/tools/
+4. **Install Helm**: https://helm.sh/docs/intro/install/
+
+### Per-Session Setup (Once)
+
+```powershell
+# User runs this ONCE per session before Claude Code starts
+minikube start
+```
+
+### Provide Secrets (When Prompted)
+
+When Claude Code asks, user provides:
+- `DATABASE_URL`: Neon PostgreSQL connection string
+- `BETTER_AUTH_SECRET`: JWT signing secret (32+ chars)
+- `OPENAI_API_KEY`: OpenAI API key for chatbot
+
+### Final Testing (At End)
+
+1. Open browser to http://localhost:3000
+2. Test user signup flow
+3. Test user signin flow
+4. Test task CRUD operations (create, read, update, delete, toggle)
+5. Test AI chatbot functionality
+6. Verify all Phase III features work identically
+
+---
+
+## Testing Each Task
+
+### Phase A: Docker Tasks
+
+| Task | Verification Command | Success Criteria |
+|------|---------------------|------------------|
+| T-401 | `Test-Path frontend/.dockerignore` | File exists |
+| T-402 | `Get-Content frontend/Dockerfile` | Multi-stage, no secrets |
+| T-403 | `docker images taskflow-frontend:1.0.0` | Image listed |
+| T-404 | `docker images --format "{{.Size}}"` | <200MB |
+| T-405 | `docker logs test-frontend` | No errors |
+| T-406 | `Test-Path backend/.dockerignore` | File exists |
+| T-407 | `Get-Content backend/Dockerfile` | Multi-stage, no secrets |
+| T-408 | `docker images taskflow-backend:1.0.0` | Image listed |
+| T-409 | `docker images --format "{{.Size}}"` | <300MB |
+| T-410 | `docker logs test-backend` | No errors |
+
+### Phase B: Helm Tasks
+
+| Task | Verification Command | Success Criteria |
+|------|---------------------|------------------|
+| T-411 | `Test-Path helm/Chart.yaml` | Directory structure exists |
+| T-412 | `Get-Content helm/Chart.yaml` | Valid YAML with name, version |
+| T-413 | `Get-Content helm/values.yaml` | All config keys present |
+| T-414 | `Get-Content helm/values-dev.yaml` | Dev overrides present |
+| T-415 | `Get-Content helm/templates/_helpers.tpl` | Helper functions defined |
+| T-416-T-423 | `Test-Path helm/templates/*.yaml` | All templates exist |
+| T-424 | `Get-Content helm/templates/NOTES.txt` | Instructions present |
+| T-425 | `helm lint ./helm/` | 0 errors |
+
+### Phase C: Deployment Tasks
+
+| Task | Verification Command | Success Criteria |
+|------|---------------------|------------------|
+| T-426 | `minikube status` | Running |
+| T-427 | `minikube image ls \| findstr frontend` | Image loaded |
+| T-428 | `minikube image ls \| findstr backend` | Image loaded |
+| T-429 | `kubectl get secret taskflow-secrets` | Secret exists |
+| T-430 | `helm list` | taskflow release deployed |
+| T-431 | `kubectl get pods -l component=frontend` | Running |
+| T-432 | `kubectl get pods -l component=backend` | Running |
+| T-433 | Port-forward active | localhost:3000 accessible |
+| T-434 | Port-forward active | localhost:8000 accessible |
+| T-435 | API call from frontend | Backend responds |
+
+### Phase D: Final Validation
+
+| Task | Verification | Success Criteria |
+|------|--------------|------------------|
+| T-436 | User browser testing | All Phase III features work |
+| T-437 | K8S_SETUP.md exists | Documentation complete |
+
+---
+
+## Error Handling
+
+### Docker Build Failures
+
+```
+IF docker build fails:
+  1. Check error message for missing file or syntax error
+  2. Fix Dockerfile or .dockerignore
+  3. Retry build command
+  4. If persistent, check base image availability
+```
+
+### Helm Lint Failures
+
+```
+IF helm lint fails:
+  1. Read error message for line number and issue
+  2. Fix YAML syntax or template error
+  3. Retry helm lint
+  4. Validate values.yaml matches template expectations
+```
+
+### Pod Not Starting
+
+```
+IF kubectl get pods shows Error/CrashLoopBackOff:
+  1. Run: kubectl describe pod <pod-name>
+  2. Run: kubectl logs <pod-name>
+  3. Check for:
+     - Missing environment variables
+     - Image pull errors (imagePullPolicy)
+     - Resource limit issues
+     - Health probe failures
+  4. Fix issue and redeploy: helm upgrade taskflow ./helm/ -f ./helm/values-dev.yaml
+```
+
+### Connection Refused on Port Forward
+
+```
+IF localhost:3000 or :8000 refuses connection:
+  1. Verify port-forward is running
+  2. Check pod is in Running state
+  3. Verify service selector matches pod labels
+  4. Check container port matches service targetPort
+  5. Restart port-forward if needed
+```
+
+### Database Connection Failures
+
+```
+IF backend fails to connect to Neon:
+  1. Verify DATABASE_URL secret is correctly set
+  2. Check Neon project is active and accepting connections
+  3. Verify network access from local machine
+  4. Check pod logs for specific connection error
+```
+
+---
+
+## Quick Reference
+
+### Start Implementation
+
+```
+1. User: minikube start (if not running)
+2. Claude: Begin with T-401 (frontend/.dockerignore)
+3. Follow task order in tasks.md
+4. Claude executes all commands
+5. User tests at end
+```
+
+### Resume After Interruption
+
+```
+1. Check tasks.md for last completed task
+2. Verify current state:
+   - docker images (Phase A)
+   - helm list (Phase B/C)
+   - kubectl get pods (Phase C)
+3. Continue from next uncompleted task
+```
+
+### Complete Cleanup
+
+```powershell
+helm uninstall taskflow
+kubectl delete secret taskflow-secrets
+minikube image rm taskflow-frontend:1.0.0 taskflow-backend:1.0.0
+docker rmi taskflow-frontend:1.0.0 taskflow-backend:1.0.0
+```
+
+---
+
+*Generated for TaskFlow Phase IV - Local Kubernetes Deployment*
+*Claude Code executes all commands; user tests in browser*

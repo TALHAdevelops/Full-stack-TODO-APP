@@ -1,0 +1,49 @@
+*******************************************************************************
+***   TaskFlow has been deployed to your Kubernetes cluster!              ***
+*******************************************************************************
+
+IMPORTANT: Before using the application, create the required secrets:
+
+  kubectl create secret generic {{ .Values.secrets.secretName }} \
+    --from-literal=database-url="YOUR_DATABASE_URL" \
+    --from-literal=better-auth-secret="YOUR_32_CHAR_SECRET" \
+    --from-literal=openai-api-key="YOUR_OPENAI_KEY"
+
+=============================================================================
+ACCESS THE APPLICATION
+=============================================================================
+
+1. Get the frontend URL by running:
+
+   kubectl port-forward svc/{{ include "taskflow.fullname" . }}-frontend {{ .Values.frontend.service.port }}:{{ .Values.frontend.service.port }}
+
+   Then open: http://localhost:{{ .Values.frontend.service.port }}
+
+2. Get the backend API URL by running:
+
+   kubectl port-forward svc/{{ include "taskflow.fullname" . }}-backend {{ .Values.backend.service.port }}:{{ .Values.backend.service.port }}
+
+   Then open: http://localhost:{{ .Values.backend.service.port }}/health
+
+=============================================================================
+VERIFY DEPLOYMENT
+=============================================================================
+
+Check pod status:
+  kubectl get pods -l app.kubernetes.io/instance={{ .Release.Name }}
+
+View logs:
+  kubectl logs -l app.kubernetes.io/component=frontend
+  kubectl logs -l app.kubernetes.io/component=backend
+
+=============================================================================
+CLEANUP
+=============================================================================
+
+To uninstall TaskFlow:
+  helm uninstall {{ .Release.Name }}
+
+To delete secrets:
+  kubectl delete secret {{ .Values.secrets.secretName }}
+
+*******************************************************************************

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: taskflow
+version: 1.0.0
+appVersion: "1.0.0"
+description: TaskFlow multi-user todo application with AI chatbot and Kubernetes deployment
+type: application
+keywords:
+  - todo
+  - fastapi
+  - nextjs
+  - kubernetes
+  - helm
+maintainers:
+  - name: TaskFlow Team

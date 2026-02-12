@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+build/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (injected at runtime)
+.env
+.env*
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+README.md
+
+# IDE
+.vscode/
+.idea/
+
+# Temp files
+*.log
+*.tmp
+*.swp
+tmpclaude-*
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# OS
+.DS_Store
+Thumbs.db

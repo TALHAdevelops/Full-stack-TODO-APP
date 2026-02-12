@@ -1,0 +1,187 @@
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskflow-config
+  namespace: taskflow
+data:
+  FRONTEND_URL: "http://taskflow-frontend"
+  BACKEND_URL: "http://taskflow-backend:8000"
+  NODE_ENV: "development"
+  LOG_LEVEL: "debug"
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-backend
+  namespace: taskflow
+  labels:
+    app: taskflow
+    component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskflow
+      component: backend
+  template:
+    metadata:
+      labels:
+        app: taskflow
+        component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "taskflow-backend:1.0.0"
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: taskflow-secrets
+                  key: database-url
+            - name: BETTER_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: taskflow-secrets
+                  key: better-auth-secret
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: taskflow-secrets
+                  key: openai-api-key
+            - name: FRONTEND_URL
+              value: "http://taskflow-frontend"
+          envFrom:
+            - configMapRef:
+                name: taskflow-config
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskflow-backend
+  namespace: taskflow
+  labels:
+    app: taskflow
+    component: backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: taskflow
+    component: backend
+---
+# Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-frontend
+  namespace: taskflow
+  labels:
+    app: taskflow
+    component: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskflow
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: taskflow
+        component: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "taskflow-frontend:1.0.0"
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "http://localhost:8000"
+            - name: NEXT_PUBLIC_APP_URL
+              value: "http://localhost:3000"
+            - name: NODE_ENV
+              value: "development"
+            - name: BETTER_AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: taskflow-secrets
+                  key: better-auth-secret
+          envFrom:
+            - configMapRef:
+                name: taskflow-config
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+          livenessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+---
+# Frontend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: taskflow-frontend
+  namespace: taskflow
+  labels:
+    app: taskflow
+    component: frontend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: taskflow
+    component: frontend

@@ -1,31 +1,38 @@
 <!--
-  SYNC IMPACT REPORT - Phase III Constitution Amendment
-  Version: 1.0.0 → 2.0.0 (MINOR bump: added AI/MCP principles and architectural constraints)
-  Date: 2026-01-12
+  SYNC IMPACT REPORT - Phase IV Constitution Amendment
+  Version: 3.0.0 → 3.1.0 (MINOR bump: added Command Automation principle XVII)
+  Date: 2026-02-08
 
-  Changes Summary:
-  - Added Principles IX-XII: AI-Specific governance (Stateless Chat, MCP as Single Source, Agent Intent Routing, Conversation Persistence)
-  - Extended Security Rules: MCP tool verification, tool invocation logging, input sanitization
-  - Extended Performance Expectations: Chat endpoint, MCP tools, agent decision, DB optimization
-  - Added Testing Requirements: MCP tool tests, agent behavior, E2E tests
-  - Added new Technology Stack: OpenAI Agents SDK, MCP, LLM considerations
-  - Added Conversation Data Models for persistence
-  - Extended API standards with chat endpoint structure
-  - Added MCP Tool Standards section
+  Previous Version (3.0.0) Changes:
+  - Added Principles XIII-XVI: K8s-Specific governance (Container-First Design, Kubernetes-Native Patterns, Infrastructure as Code, Helm Standards)
+  - Extended Technology Stack: Minikube, Docker, Helm, kubectl
+  - Extended Architectural Constraints: Container requirements, stateless design, resource management
+  - Added Coding Standards: Dockerfile standards, Helm chart standards, K8s manifest standards
+  - Extended Security Rules: K8s secrets management, container security, image versioning
+  - Added Performance Expectations: Pod startup, deployment rollout, resource efficiency
+  - Added Testing Requirements: Dockerfile validation, image size limits, Helm lint, K8s deployment verification
+  - Added Non-Negotiables: Container and K8s specific requirements
+  - Added Deployment Standards (Phase IV): Local Kubernetes deployment via Minikube
+
+  Current Version (3.1.0) Changes:
+  - Added Principle XVII: Command Automation - Claude Code executes all infrastructure commands
+  - Clarified automation expectations for docker build, helm install, kubectl operations
+  - Added Command Automation Standards section
 
   Templates Requiring Updates:
-  - .specify/templates/spec-template.md: Update "Out of Scope" to reflect chat feature scope (⚠ pending)
-  - .specify/templates/plan-template.md: Add MCP tool architecture section (⚠ pending)
-  - .specify/templates/tasks-template.md: Add "AI/MCP" task category (⚠ pending)
-  - README.md: Add Phase III features section (⚠ pending)
+  - .specify/templates/plan-template.md: Add K8s infrastructure section (⚠ pending)
+  - .specify/templates/spec-template.md: Add container/deployment requirements section (⚠ pending)
+  - .specify/templates/tasks-template.md: Add "Infrastructure/K8s" task category (⚠ pending)
+  - README.md: Add Phase IV local deployment instructions (⚠ pending)
 
   Deferred Items: None
 -->
 
-# Full-Stack Todo Application Constitution - Phase III Extension
+# Full-Stack Todo Application Constitution - Phase IV Extension
 
-<!-- Phase 2: Production-Ready Multi-User Web Application -->
-<!-- Phase 3: AI-Powered Conversational Interface with MCP Integration -->
+<!-- Phase II: Production-Ready Multi-User Web Application -->
+<!-- Phase III: AI-Powered Conversational Interface with MCP Integration -->
+<!-- Phase IV: Local Kubernetes Deployment on Minikube -->
 
 ## Core Principles
 
@@ -33,7 +40,7 @@
 - **Authentication Required**: All task operations and chat interactions require valid JWT authentication
 - **User Isolation Enforced**: Users can only access their own data and conversations; backend validates user_id from JWT matches path user_id on every request
 - **Zero Trust**: All inputs validated at API boundary (frontend AND backend); SQL injection prevented via ORM; XSS prevented via React escaping
-- **Secrets Management**: All secrets in environment variables (.env files); Never hardcoded; .gitignore excludes all .env files
+- **Secrets Management**: All secrets in environment variables (.env files for dev); K8s Secrets for deployment; Never hardcoded; .gitignore excludes all .env files
 - **Password Security**: All passwords hashed via bcrypt (Better Auth handles); No passwords in logs; JWT tokens in httpOnly cookies only
 - **CORS Configured**: Allow specific frontend origin only; credentials enabled; proper methods and headers whitelisted
 
@@ -60,12 +67,12 @@
 - **ORM Required**: SQLModel for all database operations; No raw SQL queries allowed
 - **Schema Design**: Normalized tables; Clear foreign key relationships; NOT NULL constraints where appropriate; Unique constraints for natural keys (email); Indexes on frequently queried fields (user_id, conversation_id)
 - **Data Integrity**: Foreign key constraints enforced; Validation in application layer (SQLModel + Pydantic); Transactions for multi-step operations; Cascade deletes where appropriate (user deleted → tasks/conversations deleted)
-- **Connection Management**: Neon Serverless PostgreSQL; Connection pooling enabled; pool_pre_ping=True for health checks; Connection string from environment variable
+- **Connection Management**: Neon Serverless PostgreSQL; Connection pooling enabled; pool_pre_ping=True for health checks; Connection string from environment variable (or K8s Secret in deployment)
 
 ### VI. Authentication & JWT Flow (Better Auth)
 - **Better Auth Library**: JWT plugin enabled; Token expiration: 7 days (configurable); Secure password hashing (bcrypt); Email validation
 - **JWT Token Flow**: Better Auth issues JWT on login → Stored in httpOnly cookies → Sent in Authorization: Bearer <token> header → Backend verifies JWT signature with shared secret → Extract user_id from token payload (sub claim) → Validate user_id in URL matches token user_id
-- **Shared Secret**: BETTER_AUTH_SECRET environment variable; Same secret in frontend and backend; Minimum 32 characters; Random, cryptographically secure; Never hardcoded
+- **Shared Secret**: BETTER_AUTH_SECRET environment variable (K8s Secret in deployment); Same secret in frontend and backend; Minimum 32 characters; Random, cryptographically secure; Never hardcoded
 
 ### VII. Error Handling Philosophy
 - **Frontend Error Strategy**: Network errors: helpful message; 401 errors: redirect to login; 404: resource not found; 422: inline validation messages; 500: generic error; Toast notifications for success/error feedback; Loading states prevent duplicate submissions
@@ -99,6 +106,42 @@
 - **Thread Integrity**: Conversation records group related messages; clear relationship between conversations and tasks mentioned
 - **Search & Recall**: Conversation history indexed for user to review past interactions; enables multi-turn context retention without server session
 
+### XIII. Container-First Design (Phase IV)
+- **All Components Containerized**: Frontend and Backend MUST run in Docker containers; No bare-metal dependencies in deployment
+- **Multi-Stage Builds Required**: Dockerfiles MUST use multi-stage builds for optimization; Build stage separate from runtime stage
+- **Minimal Base Images**: Use alpine or slim variants (node:20-alpine, python:3.13-slim); No full OS images
+- **No Hardcoded Configuration**: All configuration externalized via environment variables; Containers are environment-agnostic
+- **Stateless Containers**: No local file storage; All persistent data in external Neon database; Containers can be killed and recreated without data loss
+
+### XIV. Kubernetes-Native Patterns (Phase IV)
+- **Deployments Over Pods**: Always use Deployment resources (not standalone Pods); Enables rolling updates and replica management
+- **Services for Networking**: Frontend and Backend exposed via K8s Services; ClusterIP for internal, NodePort/LoadBalancer for external access
+- **ConfigMaps for Non-Secret Config**: API URLs, feature flags, non-sensitive settings in ConfigMaps
+- **Secrets for Sensitive Data**: DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY MUST be K8s Secrets; Never in ConfigMaps or Helm values
+- **Health Checks Required**: Liveness and Readiness probes defined for all containers; Prevents traffic to unhealthy pods
+- **Resource Management**: CPU/Memory requests and limits MUST be defined; Prevents resource starvation and enables proper scheduling
+
+### XV. Infrastructure as Code (Phase IV)
+- **Declarative Configuration**: All K8s resources defined in version-controlled files; No imperative kubectl create/run commands in production workflow
+- **Reproducible Deployments**: Same manifests produce identical deployments; Environment differences handled via values files
+- **GitOps Ready**: Infrastructure changes go through same PR review as application code; Audit trail for all deployment changes
+- **Idempotent Operations**: helm upgrade --install pattern; Applying same config twice has no side effects
+
+### XVI. Helm Standards (Phase IV)
+- **Helm as Package Manager**: All K8s resources defined in Helm charts; No raw kubectl apply on individual YAML files
+- **Values-Driven Configuration**: All customizable settings in values.yaml; Environment overrides in values-dev.yaml, values-prod.yaml
+- **Templated Manifests**: Use Helm templating for DRY configurations; {{ .Values.* }} for all configurable fields
+- **Chart Structure**: Follow standard Helm chart layout (Chart.yaml, values.yaml, templates/)
+- **Dependency Management**: External charts referenced in Chart.yaml dependencies; Version-pinned dependencies
+
+### XVII. Command Automation (Phase IV)
+- **AI-Executed Infrastructure**: Claude Code executes ALL infrastructure commands (docker build, helm install, kubectl, minikube)
+- **No Manual Command Entry**: User MUST NOT need to copy-paste commands; Claude Code runs them directly
+- **Scripted Operations**: Common operations wrapped in reusable patterns for consistent execution
+- **Error Handling**: Claude Code handles command failures, diagnoses issues, and retries or escalates appropriately
+- **Progress Reporting**: Clear feedback to user on command status (building, deploying, verifying)
+- **Idempotent Execution**: Commands designed to be safe to re-run without side effects
+
 ## Technology Stack
 
 ### Frontend Stack
@@ -109,584 +152,409 @@
 - **State**: React hooks (useState, useEffect, useCallback, useMemo)
 - **HTTP Client**: Fetch API (built-in)
 - **Chat UI Kit**: OpenAI ChatKit (TypeScript)
-- **Deployment**: Vercel
+- **Container**: Docker (node:20-alpine base)
+- **Deployment**: Kubernetes (Minikube local), Vercel (cloud)
 
 ### Backend Stack
 - **Framework**: FastAPI (async/await)
 - **Language**: Python 3.13+ (type hints)
 - **ORM**: SQLModel
-- **Database**: PostgreSQL (Neon Serverless)
+- **Database**: PostgreSQL (Neon Serverless - external to K8s)
 - **Authentication**: JWT verification (shared secret with Better Auth)
 - **Validation**: Pydantic models
 - **AI Agent Framework**: OpenAI Agents SDK (Python)
 - **MCP Protocol**: Model Context Protocol (server-side MCP implementation)
 - **LLM**: OpenAI API (gpt-4o or latest reasoning model)
-- **Deployment**: Local (Phase 3) or Railway/Render/Fly.io (optional)
+- **Container**: Docker (python:3.13-slim base)
+- **Deployment**: Kubernetes (Minikube local), Railway/Render/Fly.io (cloud)
+
+### Infrastructure Stack (Phase IV)
+- **Container Runtime**: Docker Desktop
+- **Local Kubernetes**: Minikube
+- **Package Manager**: Helm 3
+- **CLI Tools**: kubectl, docker, helm, minikube
+- **External Database**: Neon PostgreSQL (not containerized)
 
 ### Development Tools
 - **Package Managers**: npm (frontend), pip/uv (backend)
-- **Environment Files**: .env.local (frontend), .env (backend)
+- **Environment Files**: .env.local (frontend dev), .env (backend dev)
 - **Version Control**: Git + GitHub
 - **Code Organization**: Separate frontend/ and backend/ folders
+- **Infrastructure Code**: k8s/ or helm/ folder at repository root
 
-## Styling Standards
+## Architectural Constraints (Phase IV)
 
-### Tailwind CSS Guidelines
-- **Color Palette**:
-  - Primary: blue-600
-  - Secondary: purple-600
-  - Success: green-600
-  - Warning: yellow-600
-  - Error: red-600
-  - Neutral: gray-100 to gray-900
-- **Spacing Scale**: Consistent use of px-4, py-2, gap-4, etc.
-- **Responsive Design**: Mobile-first approach (min-width breakpoints)
-- **No Custom CSS**: All styling via Tailwind utility classes
-- **No Inline Styles**: Except for truly dynamic values (e.g., dynamic colors, positions)
+### Container Requirements
+- **Frontend Container**: Node.js 20 alpine, standalone Next.js build, <200MB image size
+- **Backend Container**: Python 3.13 slim, uvicorn ASGI server, <300MB image size
+- **No Local Dependencies**: Containers MUST NOT depend on host machine binaries or paths
+- **Port Standardization**: Frontend: 3000 (internal), Backend: 8000 (internal)
 
-## Performance Requirements
+### Kubernetes Design
+- **Namespace Isolation**: All TaskFlow resources in dedicated namespace (taskflow)
+- **Label Consistency**: All resources labeled with `app: taskflow`, `component: frontend|backend`
+- **Selector Alignment**: Deployment selectors MUST match Pod template labels
+- **Service Discovery**: Backend accessed via service name (taskflow-backend:8000), not IP addresses
 
-### Frontend Performance
-- **Initial Page Load**: <2 seconds
-- **Time to Interactive**: <3 seconds
-- **Lighthouse Score**: >80
-- **Chat UI Response**: <500ms (local rendering)
-- **Optimized Images**: Next.js Image component
-- **Code Splitting**: Automatic with App Router
+### Resource Boundaries
+- **Frontend Deployment**: 1-3 replicas, 128Mi-256Mi memory, 100m-250m CPU
+- **Backend Deployment**: 1-3 replicas, 256Mi-512Mi memory, 250m-500m CPU
+- **Startup Tolerance**: Containers MUST start within 30 seconds
+- **Graceful Shutdown**: Containers MUST handle SIGTERM for clean shutdown
 
-### Backend Performance
-- **API Response Time**: <500ms (P95)
-- **Chat Endpoint Response**: <5 seconds (including agent execution)
-- **MCP Tool Execution**: <2 seconds per tool
-- **Agent Decision Time**: <1 second (intent routing + tool selection)
-- **Database Queries**: <100ms
-- **Efficient Indexes**: On user_id (foreign key), conversation_id, and frequently queried fields
-- **No N+1 Queries**: Use proper joins/eager loading
-- **Connection Pooling**: Enabled
+### External Dependencies
+- **Database**: Neon PostgreSQL remains external; accessed via DATABASE_URL secret
+- **OpenAI API**: Accessed via OPENAI_API_KEY secret; no local LLM
+- **No In-Cluster Database**: PostgreSQL NOT deployed in Minikube (Neon handles this)
 
-## Security Requirements (Phase 2 + Phase 3 Extensions)
+## Coding Standards (Phase IV Extensions)
 
-### Authentication Security
-✓ All passwords hashed (bcrypt via Better Auth)
-✓ JWT tokens cryptographically signed with BETTER_AUTH_SECRET
-✓ Tokens stored in httpOnly cookies (not localStorage/sessionStorage)
-✓ Token expiration enforced (7 days default)
-✓ User isolation enforced on every API request
-✓ Chat endpoint requires JWT auth (same as task endpoints)
+### Dockerfile Standards
+```dockerfile
+# REQUIRED: Multi-stage build pattern
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
 
-### Input Validation
-✓ All inputs validated at frontend (UX feedback)
-✓ All inputs validated at backend (security boundary)
-✓ Pydantic models for request validation
-✓ SQL injection prevented (ORM usage)
-✓ XSS prevented (React escaping)
-✓ Natural language input sanitized (no injection attacks via chat)
-
-### Data Protection
-✓ User data isolated (user_id validation)
-✓ CORS configured correctly
-✓ No sensitive data exposed to client
-✓ All secrets in environment variables
-✓ HTTPS in production
-✓ MCP tools verify user_id before any DB access
-✓ Agent cannot access raw database (only through MCP tools)
-
-### MCP Tool Security (Phase III)
-✓ Tool invocations logged with user_id, timestamp, tool name, input, result
-✓ Each tool verifies user_id before executing (inherited from Phase II patterns)
-✓ Tool errors captured and logged without exposing internal details
-✓ Tool response validation ensures safety before agent uses result
-
-## API Endpoint Standards
-
-### Phase II: Task Management Endpoints
-- **Base Path**: /api
-- **User-Scoped Resources**: /api/{user_id}/tasks
-- **Authentication**: All endpoints require Authorization: Bearer <token>
-- **User Validation**: Backend verifies token user_id matches path user_id
-
-#### Task Endpoints
-- `GET /api/{user_id}/tasks` - List all user's tasks
-- `POST /api/{user_id}/tasks` - Create new task (body: {title, description?})
-- `GET /api/{user_id}/tasks/{id}` - Get specific task
-- `PUT /api/{user_id}/tasks/{id}` - Update task (body: {title, description?})
-- `DELETE /api/{user_id}/tasks/{id}` - Delete task
-- `PATCH /api/{user_id}/tasks/{id}/complete` - Toggle task completion status
-
-### Phase III: Chat Endpoints (New)
-- **Base Path**: /api/chat
-- **Chat Request**: `POST /api/{user_id}/chat` - Send message to AI agent
-  - **Request Body**:
-    ```json
-    {
-      "message": "string (user query)",
-      "conversation_id": "string (optional, for continuing existing conversation)"
-    }
-    ```
-  - **Response**:
-    ```json
-    {
-      "id": "string (message id)",
-      "conversation_id": "string",
-      "user_id": "string",
-      "content": "string (agent response)",
-      "tool_calls": [{"tool_name": "string", "args": {...}, "result": {...}}],
-      "created_at": "ISO timestamp"
-    }
-    ```
-
-- **Retrieve Conversations**: `GET /api/{user_id}/conversations` - List user's conversations
-- **Retrieve Conversation History**: `GET /api/{user_id}/conversations/{conversation_id}/messages` - Get all messages in conversation
-
-### Request/Response Format
-- **Request Headers**: Content-Type: application/json, Authorization: Bearer <token>
-- **Request Body**: Valid JSON matching Pydantic model
-- **Response Success**: JSON object or array (not wrapped)
-- **Response Error**: {"detail": "error message"}
-- **CORS**: Allow origin from FRONTEND_URL env var; allow credentials; allow GET, POST, PUT, DELETE, PATCH
-
-## MCP Tool Standards (Phase III)
-
-### Tool Definition Requirements
-- **Type Hints**: All parameters and return types explicitly typed
-- **Validation**: Pydantic model for input parameters; validates before tool execution
-- **User Verification**: Every tool checks user_id from JWT token before accessing user data
-- **Error Handling**: Descriptive error messages; never expose internal database errors
-- **Logging**: Tool invocation logged (user_id, timestamp, tool name, input, result)
-
-### Tool Categories
-1. **Task Management Tools**:
-   - `create_task(user_id, title, description?)` → Task
-   - `list_tasks(user_id)` → List[Task]
-   - `get_task(user_id, task_id)` → Task
-   - `update_task(user_id, task_id, title?, description?)` → Task
-   - `delete_task(user_id, task_id)` → Success
-   - `toggle_task(user_id, task_id)` → Task
-
-2. **Conversation Management Tools**:
-   - `get_conversation_history(user_id, conversation_id, limit=50)` → List[Message]
-   - `create_conversation(user_id, title?)` → Conversation
-   - All tools follow Phase II patterns (Pydantic validation, user_id verification)
-
-### Tool Response Contract
-- **Success**: Returns typed object or array matching expected schema
-- **Validation Error** (400): Descriptive message about invalid parameters
-- **Permission Error** (403): "User not authorized to access this resource"
-- **Not Found** (404): "Resource not found"
-- **Server Error** (500): Generic message; internal error logged separately
-
-## Data Models
-
-### Phase II: User Model (Managed by Better Auth)
-```typescript
-interface User {
-  id: string;          // UUID
-  email: string;       // Unique
-  name: string;
-  password_hash: string;
-  created_at: string;  // ISO timestamp
-}
+# Stage 2: Runtime
+FROM node:20-alpine AS runner
+WORKDIR /app
+# REQUIRED: Non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nextjs -u 1001
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
+USER nextjs
+EXPOSE 3000
+CMD ["node", "server.js"]
 ```
 
-### Phase II: Task Model
-```typescript
-interface Task {
-  id: number;          // Auto-increment (PostgreSQL SERIAL)
-  user_id: string;     // Foreign key to users.id
-  title: string;       // 1-200 characters, required
-  description: string | null; // Max 1000 characters, optional
-  completed: boolean;  // Default: false
-  created_at: string;  // Auto-generated ISO timestamp
-  updated_at: string;  // Auto-updated ISO timestamp
-}
+**Rules**:
+- MUST use multi-stage builds
+- MUST use specific version tags (node:20-alpine, NOT node:alpine or node:latest)
+- MUST run as non-root user
+- MUST NOT contain secrets or passwords
+- MUST NOT use ADD for remote URLs (use COPY)
+- MUST minimize layer count (combine RUN commands where logical)
+
+### Helm Chart Standards
+```yaml
+# values.yaml structure
+replicaCount: 1
+
+image:
+  repository: taskflow-frontend
+  tag: "1.0.0"  # MUST be specific version
+  pullPolicy: IfNotPresent
+
+resources:
+  requests:
+    memory: "128Mi"
+    cpu: "100m"
+  limits:
+    memory: "256Mi"
+    cpu: "250m"
+
+# Secrets referenced, NOT stored
+secrets:
+  # Values injected at runtime, not in this file
+  databaseUrlSecretName: taskflow-secrets
+  betterAuthSecretName: taskflow-secrets
 ```
 
-### Phase III: Conversation Model (New)
-```typescript
-interface Conversation {
-  id: string;          // UUID
-  user_id: string;     // Foreign key to users.id
-  title: string;       // Auto-generated or user-provided summary
-  created_at: string;  // ISO timestamp
-  updated_at: string;  // ISO timestamp
-}
+**Rules**:
+- MUST use templating for all configurable values
+- MUST NOT hardcode secrets in values.yaml
+- MUST define resource requests AND limits
+- MUST use specific image tags (never :latest)
+- MUST pass `helm lint` without errors
+
+### Kubernetes Manifest Standards
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: taskflow-backend
+  labels:
+    app: taskflow          # REQUIRED: App label
+    component: backend     # REQUIRED: Component label
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: taskflow
+      component: backend   # MUST match template labels
+  template:
+    metadata:
+      labels:
+        app: taskflow
+        component: backend
+    spec:
+      containers:
+      - name: backend
+        image: taskflow-backend:1.0.0  # Specific version
+        ports:
+        - containerPort: 8000
+        resources:                      # REQUIRED
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:              # Secrets from K8s Secrets
+              name: taskflow-secrets
+              key: database-url
 ```
 
-### Phase III: Message Model (New)
-```typescript
-interface Message {
-  id: string;          // UUID
-  conversation_id: string; // Foreign key to conversations.id
-  user_id: string;     // Foreign key to users.id
-  role: "user" | "assistant"; // Who sent this message
-  content: string;     // Message text
-  tool_calls?: Array<{
-    tool_name: string;
-    input: object;
-    result: object;
-    executed_at: string;
-  }>;
-  created_at: string;  // ISO timestamp
-}
+**Rules**:
+- MUST include app and component labels on all resources
+- MUST define resource requests and limits
+- MUST use secretKeyRef for sensitive environment variables
+- MUST NOT use :latest image tags
+- MUST have matching selectors and template labels
+
+## Command Automation Standards (Phase IV)
+
+### Automated Command Categories
+- **Container Commands**: `docker build`, `docker tag`, `docker images`, `docker inspect`
+- **Minikube Commands**: `minikube start`, `minikube status`, `minikube image load`, `minikube service`
+- **Helm Commands**: `helm lint`, `helm template`, `helm upgrade --install`, `helm list`, `helm uninstall`
+- **Kubectl Commands**: `kubectl apply`, `kubectl get`, `kubectl describe`, `kubectl logs`, `kubectl create secret`
+- **Verification Commands**: `kubectl get pods`, `kubectl get services`, health check endpoints
+
+### Execution Patterns
+```bash
+# Pattern 1: Sequential with verification
+docker build -t taskflow-frontend:1.0.0 ./frontend && \
+minikube image load taskflow-frontend:1.0.0 && \
+kubectl get pods | grep frontend
+
+# Pattern 2: Helm deployment with status check
+helm upgrade --install taskflow ./charts/taskflow -f values-dev.yaml && \
+kubectl rollout status deployment/taskflow-frontend && \
+kubectl rollout status deployment/taskflow-backend
+
+# Pattern 3: Port-forward for user testing (runs in background)
+kubectl port-forward svc/taskflow-frontend 3000:3000
 ```
 
-### SQLModel Schema (Python Backend)
-```python
-# models.py - Phase II
-from sqlmodel import SQLModel, Field
-from typing import Optional
-from datetime import datetime
+### Command Output Handling
+- **Success**: Report completion, show relevant output (pod status, service URLs)
+- **Failure**: Diagnose error, suggest fix, retry if appropriate
+- **Long-Running**: Inform user of progress, use `--wait` flags where available
+- **Interactive**: NEVER use interactive flags (-i, --interactive); all commands must be non-interactive
 
-class Task(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: str = Field(foreign_key="user.id", index=True)
-    title: str = Field(min_length=1, max_length=200)
-    description: Optional[str] = Field(default=None, max_length=1000)
-    completed: bool = Field(default=False)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+### User Involvement
+- **Secrets Only**: User provides secret values (DATABASE_URL, API keys) verbally or via secure input
+- **Browser Testing**: User manually tests via `localhost:3000` after port-forward
+- **Approval Gates**: User confirms before destructive operations (delete, uninstall)
 
-# models.py - Phase III (New)
-import uuid
+## Security Rules (Phase IV)
 
-class Conversation(SQLModel, table=True):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    user_id: str = Field(foreign_key="user.id", index=True)
-    title: str = Field(max_length=500)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+### Secrets Management
+- **K8s Secrets for All Sensitive Data**: DATABASE_URL, BETTER_AUTH_SECRET, OPENAI_API_KEY
+- **Manual Secret Creation**: `kubectl create secret generic taskflow-secrets --from-literal=database-url=... --from-literal=better-auth-secret=...`
+- **No Secrets in Git**: Secrets NEVER committed to repository; create manually or via sealed-secrets
+- **No Secrets in Dockerfiles**: Build args for secrets are forbidden
+- **No Secrets in Helm Values**: values.yaml references secret names, not secret values
 
-class Message(SQLModel, table=True):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
-    conversation_id: str = Field(foreign_key="conversation.id", index=True)
-    user_id: str = Field(foreign_key="user.id", index=True)
-    role: str = Field(default="user")  # "user" or "assistant"
-    content: str
-    tool_calls: Optional[str] = Field(default=None)  # JSON-serialized
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+### Container Security
+- **Non-Root Execution**: All containers MUST run as non-root user
+- **Read-Only Filesystem**: Where possible, use readOnlyRootFilesystem: true
+- **No Privilege Escalation**: allowPrivilegeEscalation: false
+- **Specific Base Images**: Pin to exact versions (node:20-alpine, NOT node:20)
+- **Minimal Attack Surface**: Only install required packages; no dev dependencies in runtime image
+
+### Network Security
+- **Internal Services**: Backend service not exposed externally (ClusterIP)
+- **Frontend Ingress**: Only frontend exposed via NodePort or Ingress
+- **Inter-Service Auth**: Backend validates JWT on every request (same as Phase II/III)
+
+## Performance Expectations (Phase IV)
+
+### Container Performance
+- **Image Build Time**: <5 minutes per image (with cache)
+- **Image Size**: Frontend <200MB, Backend <300MB
+- **Container Startup**: <30 seconds to healthy state
+
+### Kubernetes Performance
+- **Pod Startup Time**: <30 seconds per pod (from scheduled to ready)
+- **Deployment Rollout**: <2 minutes for all replicas to reach Ready state
+- **Service Availability**: Zero downtime during rolling updates
+
+### Resource Efficiency
+- **Frontend Pod**: <256MB memory at steady state
+- **Backend Pod**: <512MB memory at steady state
+- **CPU Utilization**: <50% at idle, scales with load
+
+### Scaling
+- **Horizontal Scaling**: Support 2-3 replicas per deployment without issues
+- **Load Distribution**: Traffic evenly distributed across replicas via Service
+- **Database Connections**: Connection pooling handles multiple backend replicas
+
+## Testing Requirements (Phase IV)
+
+### Dockerfile Validation
+- [ ] `docker build` completes without errors
+- [ ] Multi-stage build produces minimal runtime image
+- [ ] Image runs without root privileges
+- [ ] No secrets baked into image layers
+- [ ] Image starts and responds to health checks
+
+### Docker Image Requirements
+- [ ] Frontend image <200MB
+- [ ] Backend image <300MB
+- [ ] Images tagged with semantic versions (not :latest)
+- [ ] Images load successfully into Minikube (`minikube image load`)
+
+### Helm Chart Validation
+- [ ] `helm lint charts/taskflow` passes without errors
+- [ ] `helm template` renders valid YAML
+- [ ] All values documented in values.yaml
+- [ ] Environment-specific overrides work (values-dev.yaml)
+
+### Kubernetes Deployment Testing
+- [ ] `kubectl apply` creates all resources without errors
+- [ ] Pods reach Running state within 30 seconds
+- [ ] Services route traffic correctly
+- [ ] Secrets injected as environment variables
+- [ ] Health checks pass (liveness/readiness probes)
+- [ ] Application functions correctly in K8s environment
+- [ ] Frontend can communicate with backend via service name
+- [ ] Backend can connect to external Neon database
+
+### End-to-End K8s Tests
+- [ ] Fresh deployment from scratch works
+- [ ] Rolling update completes without downtime
+- [ ] Pod restart recovers cleanly
+- [ ] Scaling to 2 replicas works
+- [ ] User can sign up, create tasks, use chat (full flow in K8s)
+
+## Non-Negotiables (Phase IV)
+
+### MUST Have
+- Multi-stage Docker builds for all containers
+- Specific image version tags (never :latest)
+- Non-root user in all containers
+- K8s Secrets for all sensitive configuration
+- Resource requests AND limits on all containers
+- Consistent labels (app, component) on all K8s resources
+- Helm charts for all K8s resource management
+- Health probes (liveness, readiness) on all deployments
+- Stateless containers (no local persistent storage)
+
+### MUST NOT Have
+- Hardcoded secrets in ANY file (Dockerfile, Helm values, manifests, scripts)
+- :latest image tags
+- Root user in containers
+- Secrets in ConfigMaps
+- Secrets committed to git
+- Standalone Pods (must use Deployments)
+- Raw kubectl apply in production workflow (use Helm)
+- Local file storage in containers
+- Host-dependent paths or binaries
+
+## Deployment Standards (Phase IV)
+
+### Local Kubernetes Deployment (Minikube)
+
+#### Prerequisites
+```bash
+# Required tools
+minikube version  # v1.32+
+kubectl version   # v1.28+
+helm version      # v3.14+
+docker version    # v24+
 ```
 
-## Business Rules
+#### Deployment Workflow
+```bash
+# 1. Start Minikube
+minikube start --memory=4096 --cpus=2
 
-### Phase II: Task Operations
-- Users can only access their own tasks (enforced in backend via JWT user_id validation)
-- Task IDs auto-increment (PostgreSQL SERIAL)
-- Completed tasks can be toggled back to pending
-- Deleted tasks cannot be recovered (no soft delete in Phase 2)
-- Each user has independent task list
-- Empty task list shows helpful empty state (frontend)
+# 2. Build and load images
+docker build -t taskflow-frontend:1.0.0 ./frontend
+docker build -t taskflow-backend:1.0.0 ./backend
+minikube image load taskflow-frontend:1.0.0
+minikube image load taskflow-backend:1.0.0
 
-### Phase III: Chat Operations
-- Chat is conversational; agent maintains context via conversation history in DB
-- Each user message creates a new Message record
-- Agent responses create assistant Message records
-- Agent can invoke MCP tools to manage tasks
-- Tool results logged in message.tool_calls for transparency
-- Users can start multiple independent conversations
-- Conversations are user-isolated (enforced in backend)
+# 3. Create secrets (MANUAL - not in git)
+kubectl create secret generic taskflow-secrets \
+  --from-literal=database-url='postgresql://...' \
+  --from-literal=better-auth-secret='...' \
+  --from-literal=openai-api-key='...'
 
-## Development Workflow
+# 4. Deploy via Helm
+helm upgrade --install taskflow ./charts/taskflow -f ./charts/taskflow/values-dev.yaml
 
-### Environment Setup
-- **Frontend .env.local**:
-  ```
-  BETTER_AUTH_SECRET=<shared-secret-32-chars-min>
-  BETTER_AUTH_URL=http://localhost:3000
-  BACKEND_URL=http://localhost:8000
-  OPENAI_API_KEY=<openai-api-key>
-  ```
-- **Backend .env**:
-  ```
-  BETTER_AUTH_SECRET=<same-shared-secret>
-  DATABASE_URL=<neon-connection-string>
-  FRONTEND_URL=http://localhost:3000
-  OPENAI_API_KEY=<openai-api-key>
-  ```
-- **.env.example files**: Template with placeholders (no secrets)
-- **.gitignore**: Excludes .env, .env.local, .env.*
+# 5. Access application
+minikube service taskflow-frontend --url
+```
 
-### Local Development
-- **Frontend**: `npm run dev` (localhost:3000)
-- **Backend**: `uvicorn main:app --reload` (localhost:8000)
-- **Database**: Neon cloud (no local PostgreSQL needed)
-- **Testing**: Use multiple browser profiles to test user isolation
-
-### Code Organization
+#### Project Structure (Phase IV)
 ```
 project-root/
 ├── frontend/
-│   ├── app/               # Next.js App Router
-│   ├── components/        # React components
-│   │   ├── ui/           # Shared UI components
-│   │   └── chat/         # Chat-specific components (Phase III)
-│   ├── lib/               # Utilities (api.ts, types.ts)
-│   ├── public/            # Static assets
-│   ├── .env.local         # Frontend environment
-│   └── package.json
+│   ├── Dockerfile           # Multi-stage Next.js build
+│   └── ...
 ├── backend/
-│   ├── main.py            # FastAPI app
-│   ├── models.py          # SQLModel schemas
-│   ├── auth.py            # JWT verification
-│   ├── mcp_tools.py       # MCP tool implementations (Phase III)
-│   ├── chat.py            # Chat endpoint logic (Phase III)
-│   ├── .env               # Backend environment
-│   └── requirements.txt
-├── specs/                 # Feature specifications
-├── .specify/              # SDD templates and scripts
-└── README.md              # Setup instructions
+│   ├── Dockerfile           # Multi-stage Python build
+│   └── ...
+├── charts/
+│   └── taskflow/
+│       ├── Chart.yaml       # Helm chart metadata
+│       ├── values.yaml      # Default values
+│       ├── values-dev.yaml  # Dev overrides
+│       └── templates/
+│           ├── frontend-deployment.yaml
+│           ├── frontend-service.yaml
+│           ├── backend-deployment.yaml
+│           ├── backend-service.yaml
+│           └── configmap.yaml
+├── .specify/                # SDD artifacts
+└── README.md
 ```
 
-## Deployment Standards
-
-### Frontend Deployment (Vercel)
-- **Platform**: Vercel (automatic deploys from GitHub)
-- **Environment Variables**: Configured in Vercel dashboard
-- **Build Command**: `npm run build`
-- **Production URL**: https://your-app.vercel.app
-- **CORS Update**: Update backend FRONTEND_URL to production URL
-
-### Backend Deployment (Phase 2: Optional / Phase 3: Required)
-- **Development**: Can run locally for Phase 2
-- **Production**: Railway, Render, Fly.io, or similar
-- **Environment Variables**: Configured in platform dashboard
-- **CORS**: Update with production frontend URL
-- **MCP Server**: Deployed alongside FastAPI (Phase III)
-
-### Database (Neon)
-- **Host**: Cloud-hosted PostgreSQL (Neon Serverless)
-- **Environment**: Same instance for dev and production
-- **Connection String**: From environment variable (DATABASE_URL)
-- **Features**: Automatic scaling and backups
-- **Phase III**: Indexes on conversation_id, user_id for chat performance
-
-## Phase 2 Scope
-
-### Must Have (Basic Level Features)
-✓ User authentication (signup, signin, signout via Better Auth)
-✓ JWT token validation on all task endpoints
-✓ User isolation enforced (backend validates user_id)
-✓ Add task (title + optional description)
-✓ View all user's tasks (list)
-✓ Edit task (title and/or description)
-✓ Delete task
-✓ Toggle task completion status (pending ↔ complete)
-✓ Data persists in PostgreSQL (Neon)
-✓ Frontend deployed on Vercel (public URL)
-✓ Responsive design (mobile, tablet, desktop)
-✓ Type safety (TypeScript frontend, Python backend)
-✓ Clean, professional UI with Tailwind CSS
-✓ Error handling with user feedback
-✓ Loading states for async operations
-
-### Out of Scope (Phase 2)
-✗ Advanced features (priorities, tags, due dates, search, filter, sort)
-✗ Real-time updates (WebSockets/SSE)
-✗ Email verification
-✗ Password reset flow
-✗ Social login (Google, GitHub)
-✗ Profile pages
-✗ Task sharing between users
-✗ File uploads
-✗ Mobile native app
-✗ Admin panel
-✗ Analytics/metrics
-✗ Internationalization (i18n)
-✗ Dark mode (can add as bonus)
-✗ Task categories/reminders/recurring tasks
-✗ AI chat interface (Phase III)
-
-## Phase 3 Scope
-
-### Must Have (AI Chatbot Features)
-✓ Natural language interface via OpenAI Agents SDK
-✓ Conversational chat UI with message history
-✓ Agent can understand and execute task operations
-✓ Task management via natural language ("Create a task to...", "Mark task as done")
-✓ Conversation history stored and retrievable
-✓ MCP tools verify user_id before any DB access
-✓ Chat endpoint requires JWT authentication
-✓ Tool invocations logged with user_id, timestamp, result
-✓ Agent responses include transparency on tool usage
-✓ User isolation enforced (user only sees own conversations)
-
-### Out of Scope (Phase 3)
-✗ Voice input/output
-✗ Multi-language support
-✗ Advanced NLU (beyond OpenAI Agent capabilities)
-✗ Task scheduling based on natural language
-✗ Integration with external calendar/email systems
-✗ Model fine-tuning or custom LLM
-✗ Real-time streaming responses (MVP: request/response)
-✗ Agent memory across sessions (unless via conversation history)
-
-## Success Criteria
-
-### Functional Requirements (Phase 2)
-✓ Users can sign up with email/password
-✓ Users can sign in and receive JWT token
-✓ Users can sign out
-✓ Users can add tasks (title + optional description)
-✓ Users can view all their tasks
-✓ Users can edit task title and/or description
-✓ Users can delete tasks
-✓ Users can toggle task status (pending ↔ complete)
-✓ Users cannot see other users' tasks (isolation verified)
-✓ Tasks persist after page refresh
-✓ Tasks persist after server restart
-
-### Functional Requirements (Phase 3)
-✓ Users can chat with AI agent
-✓ Agent understands task-related requests
-✓ Agent can create, update, delete, and list tasks via natural language
-✓ Conversation history persists and is retrievable
-✓ Users cannot see other users' conversations
-✓ Agent responses show which tools were used and their results
-✓ Chat errors handled gracefully with helpful messages
-
-### Technical Requirements (Phase 2)
-✓ Next.js App Router used correctly
-✓ TypeScript strict mode passes with no errors
-✓ All API endpoints secured with JWT
-✓ User isolation verified (tested with 2+ user accounts)
-✓ Database connection works reliably
-✓ Frontend deployed on Vercel with public URL
-✓ Responsive on mobile (320px+), tablet, and desktop
-✓ No console errors in browser
-✓ No unhandled promise rejections
-
-### Technical Requirements (Phase 3)
-✓ OpenAI Agents SDK integrated correctly
-✓ MCP tools implement type-safe operations
-✓ MCP tools verify user_id on every operation
-✓ Chat endpoint response time <5 seconds (P95)
-✓ MCP tool execution <2 seconds per tool
-✓ Agent decision time <1 second
-✓ Conversation history correctly stored and retrieved
-✓ Tool invocations logged to database
-✓ TypeScript ChatKit integration has no 'any' types
-✓ No Python exceptions leaked to chat endpoint
-
-### User Experience Requirements (Phase 2)
-✓ Clean, modern UI design
-✓ Loading states for all async operations
-✓ Error messages clear and actionable
-✓ Form validation with inline feedback
-✓ Success confirmations after actions
-✓ Smooth page transitions
-✓ Intuitive navigation
-✓ Professional appearance
-
-### User Experience Requirements (Phase 3)
-✓ Chat interface is intuitive and responsive
-✓ Agent responses are natural and helpful
-✓ Tool usage is transparent (user knows what agent did)
-✓ Error messages guide user to recovery
-✓ Conversation history is easy to navigate
-✓ No noticeable latency in agent responses
-✓ Mobile-friendly chat UI
-
-## Testing Requirements (Phase 3)
-
-### MCP Tool Tests
-- Unit tests for each MCP tool (create, read, update, delete, toggle tasks)
-- User isolation verified: tool rejects user_id mismatch
-- Error handling: tool returns proper error codes and messages
-- Validation: invalid inputs rejected with descriptive error
-- Database state: tool operations correctly persist to DB
-
-### Agent Behavior Tests
-- 15+ sample conversations tested end-to-end
-- Agent correctly routes requests to appropriate tools
-- Agent handles tool errors gracefully
-- Agent generates natural, helpful responses
-- Agent understands context from conversation history
-- Multi-turn conversations maintain coherent context
-
-### Chat Endpoint Tests
-- JWT verification: rejected requests without valid token
-- User isolation: user cannot access other user's conversations
-- Conversation persistence: messages correctly stored and retrieved
-- Performance: response time consistently <5 seconds
-- Error handling: network errors, tool failures handled gracefully
-
-### End-to-End Tests
-- User signs up → chats → creates task → asks to list → agent provides list
-- User starts conversation → asks to update task → agent updates → persists
-- Two users isolated: user A cannot see user B's conversations
-- Agent retries on recoverable tool failure
-- Tool invocation logging: all operations auditable by user_id
-
-## Non-Negotiables
-
-### Must Have
-- All code generated via spec-driven development (AI generates from specs)
-- All Phase 2 features work via web interface
-- All Phase 3 chat features work correctly
-- User authentication required (signup, signin, signout)
-- JWT token validation on all endpoints (tasks + chat)
-- User isolation enforced on every request
-- Data persists in PostgreSQL (Neon)
-- Frontend deployed on Vercel (public URL)
-- Responsive design (works on mobile, tablet, desktop)
-- Type safety (TypeScript frontend, Python type hints backend)
-- Clean, professional UI with Tailwind CSS
-- MCP tools verify user_id before any DB access
-- Chat endpoint requires JWT authentication
-- Agent cannot access raw database (only via MCP tools)
-
-### Must Not Have
-- No localStorage for JWT (security risk)
-- No sessionStorage for JWT
-- No raw SQL queries (use SQLModel ORM)
-- No hardcoded secrets in code
-- No sensitive data exposed to client
-- No authentication bypass mechanisms
-- No console.log in production frontend
-- No print() in production backend
-- No direct database access from chat endpoint
-- No tool invocations without logging
-- No unvalidated natural language injection
-- No MCP tools that skip user_id verification
-
-### Security Must-Haves
-- All passwords hashed (bcrypt)
-- JWT tokens cryptographically signed
-- User isolation enforced on every request
-- All inputs validated (frontend AND backend)
-- SQL injection prevented (ORM usage)
-- XSS prevented (React escaping)
-- CORS configured correctly
-- All secrets in environment variables
-- Chat input sanitized (no injection attacks)
-- Tool invocations logged with user_id
-- MCP tools enforce access control
+### Cloud Deployment (Unchanged from Phase II/III)
+- **Frontend**: Vercel (automatic deploys from GitHub)
+- **Backend**: Railway, Render, or Fly.io
+- **Database**: Neon PostgreSQL (cloud-hosted)
 
 ## Governance
 
 ### Constitution Authority
 - This constitution supersedes all other practices and guidelines
-- All code, specs, and implementations must comply with these principles
+- All code, specs, infrastructure, and implementations must comply with these principles
 - Amendments require documentation and approval via /sp.constitution
 - CLAUDE.md provides runtime development guidance and must align with this constitution
 
 ### Compliance Verification
-- All PRs/reviews must verify compliance with security, type safety, and API standards
+- All PRs/reviews must verify compliance with security, type safety, API standards, and K8s best practices
+- Infrastructure changes reviewed with same rigor as application code
 - Complexity must be justified; simple solutions preferred
 - Over-engineering is explicitly discouraged
 - User isolation must be tested with multiple user accounts before deployment
 - MCP tools must be verified to enforce user_id checks before deployment
+- K8s deployments must be tested in Minikube before any cloud deployment
 
 ### Development Philosophy
 - **Spec-Driven Development (SDD)**: All features start with specifications
 - **AI-Assisted Generation**: AI generates code from specs following this constitution
 - **Human as Tool**: Invoke user for clarifications, architectural decisions, and ambiguous requirements
 - **Smallest Viable Change**: No refactoring unrelated code; focused changes only
+- **Infrastructure as Code**: K8s resources treated as first-class code artifacts
 
 ### Version Control
 - **Semantic Versioning**: MAJOR.MINOR.PATCH
-  - MAJOR: Backward incompatible principle changes or removals
+  - MAJOR: Backward incompatible principle changes or removals (e.g., new deployment paradigm)
   - MINOR: New principle/section added or materially expanded guidance
   - PATCH: Clarifications, wording, typo fixes, non-semantic refinements
 - **Amendment Log**: Each amendment updates LAST_AMENDED_DATE and documents changes in Sync Impact Report comment
 
-**Version**: 2.0.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2026-01-12
+**Version**: 3.1.0 | **Ratified**: 2025-12-31 | **Last Amended**: 2026-02-08

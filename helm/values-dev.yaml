@@ -1,0 +1,22 @@
+# Development overrides for local Minikube deployment
+# Use with: helm install taskflow helm/ -f helm/values-dev.yaml
+
+# Single replica for development
+replicaCount: 1
+
+# Frontend development settings
+frontend:
+  image:
+    # Use locally loaded image in Minikube (no registry pull)
+    pullPolicy: Never
+
+# Backend development settings
+backend:
+  image:
+    # Use locally loaded image in Minikube (no registry pull)
+    pullPolicy: Never
+
+# Development configuration
+config:
+  nodeEnv: "development"
+  logLevel: "debug"

@@ -1,0 +1,54 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Git
+.git/
+.gitignore
+
+# Environment files (injected at runtime)
+.env
+.env*
+.env.local
+
+# Documentation
+*.md
+README.md
+DEPLOY.md
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+.tox/
+.nox/
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Temp files
+*.log
+*.tmp
+tmpclaude-*
+
+# Vercel (not needed for K8s)
+vercel.json
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,4 +1,4 @@
-# CLAUDE.md - TaskFlow Phase 2 Implementation Notes
+﻿# CLAUDE.md - TaskFlow Phase 2 Implementation Notes
 
 ## Project Overview
 TaskFlow Web is a multi-user todo application that evolved from a Phase 1 console app. It adheres to **Spec-Driven Development (SDD)** principles.
