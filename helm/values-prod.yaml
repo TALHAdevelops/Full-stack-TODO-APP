@@ -1,0 +1,30 @@
+# Production overrides for cloud deployment
+# Use with: helm install taskflow helm/ -f helm/values-prod.yaml
+
+# Single replica for cost efficiency on free tiers
+replicas: 1
+
+# Backend production settings
+backend:
+  image:
+    tag: "latest"
+    pullPolicy: Always
+
+# Kafka / Redpanda Cloud configuration
+kafka:
+  bootstrapServers: "${KAFKA_BOOTSTRAP_SERVERS}"
+  sasl:
+    enabled: true
+    mechanism: "SCRAM-SHA-256"
+    username: "${KAFKA_SASL_USERNAME}"
+    password: "${KAFKA_SASL_PASSWORD}"
+  securityProtocol: "SASL_SSL"
+
+# Dapr disabled for cloud simple deployment
+dapr:
+  enabled: false
+
+# Production configuration
+config:
+  nodeEnv: "production"
+  logLevel: "info"

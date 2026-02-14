@@ -83,3 +83,22 @@ secrets:
     databaseUrl: "database-url"
     betterAuthSecret: "better-auth-secret"
     openaiApiKey: "openai-api-key"
+
+# --- Phase 5: Event-Driven Architecture additions ---
+
+# Kafka / Redpanda configuration
+kafka:
+  bootstrapServers: "redpanda:9092"
+
+# Redis configuration (caching, pub/sub)
+redis:
+  url: "redis://redis:6379"
+
+# Dapr sidecar configuration
+dapr:
+  enabled: true
+  appId: "taskflow-backend"
+
+# WebSocket real-time sync
+websocket:
+  enabled: true

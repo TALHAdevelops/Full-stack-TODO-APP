@@ -30,8 +30,54 @@ class Task(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # Relationship
+    # Phase 5: Recurring tasks and reminders
+    due_date: Optional[datetime] = Field(default=None, index=True)
+    recurrence_rule: Optional[str] = Field(default=None)  # RRULE format
+    is_recurring: bool = Field(default=False, index=True)
+    next_occurrence: Optional[datetime] = Field(default=None, index=True)
+
+    # Relationships
     user: User = Relationship(back_populates="tasks")
+    reminders: List["Reminder"] = Relationship(
+        back_populates="task",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
+
+
+class Reminder(SQLModel, table=True):
+    """Reminder model for task due-date notifications
+
+    @spec: Phase 5 - US3 Reminders
+    """
+    __tablename__ = "reminders"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    task_id: int = Field(foreign_key="tasks.id", index=True)
+    user_id: str = Field(foreign_key="users.id", index=True)
+    remind_at: datetime = Field(index=True)
+    notified: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    # Relationship
+    task: Task = Relationship(back_populates="reminders")
+
+
+class EventLog(SQLModel, table=True):
+    """Immutable event log for audit trail
+
+    @spec: Phase 5 - US4 Event History
+    """
+    __tablename__ = "event_log"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True)
+    event_id: str = Field(index=True)
+    event_type: str = Field(index=True)
+    user_id: str = Field(index=True)
+    aggregate_id: str = Field(index=True)
+    timestamp: datetime = Field(default_factory=datetime.utcnow, index=True)
+    correlation_id: str = Field(default="")
+    data: str = Field(default="{}")  # JSON string
+    version: int = Field(default=1)
 
 
 class Conversation(SQLModel, table=True):

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskflow-config
+  namespace: taskflow
+  labels:
+    app: taskflow
+data:
+  KAFKA_BOOTSTRAP_SERVERS: "redpanda:9092"
+  REDIS_URL: "redis://redis:6379"
+  USE_DAPR: "true"
+  FRONTEND_URL: "http://localhost:3000"

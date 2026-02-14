@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: taskflow-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        sync: false
+      - key: FRONTEND_URL
+        value: https://talha-taskflow-web.vercel.app
+      - key: KAFKA_BOOTSTRAP_SERVERS
+        sync: false
+      - key: USE_DAPR
+        value: "false"
+    healthCheckPath: /health

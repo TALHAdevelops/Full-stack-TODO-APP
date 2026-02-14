@@ -15,7 +15,8 @@ import {
   toggleTaskStatus,
   getCurrentUser,
 } from "@/lib/api";
-import { LayoutDashboard, Target, Layers } from "lucide-react";
+import { useWebSocket } from "@/components/realtime/WebSocketProvider";
+import { LayoutDashboard, Target, Layers, Wifi, WifiOff } from "lucide-react";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -27,6 +28,23 @@ export default function Dashboard() {
   // Edit/Delete state
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null);
+
+  // Phase 5: Real-time sync via WebSocket
+  const { connectionState, onTaskEvent } = useWebSocket();
+
+  // Listen for WebSocket task events and refresh task list
+  useEffect(() => {
+    const unsubscribe = onTaskEvent(async (message) => {
+      // Refresh tasks from server on any task event
+      try {
+        const freshTasks = await getTasks();
+        setTasks(freshTasks);
+      } catch {
+        // Silently ignore refresh failures
+      }
+    });
+    return unsubscribe;
+  }, [onTaskEvent]);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -162,22 +180,33 @@ export default function Dashboard() {
               initialTask={editingTask || undefined}
               loading={actionLoading}
             />
-            {/* System Status Mock */}
+            {/* System Status */}
             <div className="glass-card p-6 rounded-2xl border-white/5 space-y-4">
               <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                 System Telemetry
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="text-gray-600">DATABASE LATENCY</span>
-                  <span className="text-[#00f2ff]">12ms</span>
+                  <span className="text-gray-600">REAL-TIME SYNC</span>
+                  <span className={`flex items-center gap-1 ${
+                    connectionState === "connected" ? "text-[#00f2ff]" :
+                    connectionState === "reconnecting" ? "text-yellow-400" :
+                    "text-gray-500"
+                  }`}>
+                    {connectionState === "connected" ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                    {connectionState.toUpperCase()}
+                  </span>
                 </div>
                 <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="w-1/3 h-full bg-[#00f2ff] animate-pulse"></div>
+                  <div className={`h-full transition-all duration-500 ${
+                    connectionState === "connected" ? "w-full bg-[#00f2ff]" :
+                    connectionState === "reconnecting" ? "w-1/2 bg-yellow-400 animate-pulse" :
+                    "w-0 bg-gray-500"
+                  }`}></div>
                 </div>
                 <div className="flex justify-between items-center text-[10px] font-mono">
-                  <span className="text-gray-600">CORE TEMPERATURE</span>
-                  <span className="text-[#ff00c8]">OPTIMAL</span>
+                  <span className="text-gray-600">EVENT SYSTEM</span>
+                  <span className="text-[#ff00c8]">ACTIVE</span>
                 </div>
               </div>
             </div>

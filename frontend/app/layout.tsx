@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { WebSocketProvider } from "@/components/realtime/WebSocketProvider";
 
 export const metadata: Metadata = {
-  title: "TaskFlow | Phase 2",
-  description: "Secure Full-Stack Task Management",
+  title: "TaskFlow | Phase 5",
+  description: "Secure Full-Stack Task Management with Real-Time Sync",
 };
 
 export default function RootLayout({
@@ -17,7 +18,9 @@ export default function RootLayout({
         className="antialiased bg-background text-foreground min-h-screen"
         suppressHydrationWarning
       >
-        {children}
+        <WebSocketProvider>
+          {children}
+        </WebSocketProvider>
       </body>
     </html>
   );

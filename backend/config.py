@@ -21,6 +21,15 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     VERCEL_URL: str = ""  # Vercel provides this in production
 
+    # Phase 5: Event-driven architecture
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:19092"
+    REDIS_URL: str = "redis://localhost:6379"
+    USE_DAPR: bool = False
+    KAFKA_SASL_MECHANISM: str = ""
+    KAFKA_SASL_USERNAME: str = ""
+    KAFKA_SASL_PASSWORD: str = ""
+    KAFKA_SECURITY_PROTOCOL: str = ""
+
     model_config = SettingsConfigDict(**_settings_config)
 
     @property

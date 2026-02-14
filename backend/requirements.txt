@@ -8,3 +8,9 @@ pydantic-settings==2.1.0
 python-multipart==0.0.9
 bcrypt==4.1.2
 openai>=1.0.0
+# Phase 5: Event-driven architecture
+aiokafka==0.11.0
+apscheduler==3.10.4
+python-dateutil==2.9.0
+websockets==13.1
+aiohttp==3.10.11
