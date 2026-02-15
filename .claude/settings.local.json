@@ -64,7 +64,21 @@
       "Bash(\"C:/Users/Noman Traders/Documents/TALHA-HTFA/windows-amd64/helm.exe\" version)",
       "Bash(kubectl describe:*)",
       "Bash(minikube ssh:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(git fetch:*)",
+      "Bash(/c/Users/PC/Desktop/Full-stack-TODO-APP/PHASE5_SPEC_SUMMARY.md:*)",
+      "Bash(bash .specify/scripts/bash/create-phr.sh --title \"phase-5-task-breakdown-generation\" --stage tasks --feature 6-event-driven-architecture --json)",
+      "Bash(\"/c/Users/PC/Desktop/minikube-installer.exe\" /S)",
+      "Bash(cmd.exe /c \"C:\\\\Users\\\\PC\\\\Desktop\\\\minikube-installer.exe /S\")",
+      "Bash(export PATH=\"$PATH:/c/Program Files/Kubernetes/Minikube\")",
+      "Bash(minikube version:*)",
+      "Bash(cmd.exe /c \"setx PATH \"\"%PATH%;C:\\\\Users\\\\PC\\\\bin\"\"\")",
+      "Bash(powershell -ExecutionPolicy Bypass -Command \"& ''./.specify/scripts/powershell/check-prerequisites.ps1'' -Json -RequireTasks -IncludeTasks\")",
+      "Bash(git commit:*)",
+      "Bash(git config:*)",
+      "Bash(git push:*)",
+      "Bash(test:*)",
+      "Bash(pip install:*)"
     ]
   }
 }
