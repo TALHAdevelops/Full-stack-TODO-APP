@@ -23,6 +23,10 @@ frontend/.env.local
 frontend/.env.*.local
 frontend/.env.example
 
+# Root environment
+.env
+.env.local
+
 # OS & IDE
 .DS_Store
 .vscode/
