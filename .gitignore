@@ -23,7 +23,9 @@ frontend/.env.local
 frontend/.env.*.local
 frontend/.env.example
 
-# Root environment
+# Root
+node_modules/
+package-lock.json
 .env
 .env.local
 
