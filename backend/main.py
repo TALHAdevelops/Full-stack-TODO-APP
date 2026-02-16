@@ -62,11 +62,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS origins
-cors_origins = [
+# Configure CORS origins from settings + hardcoded defaults
+cors_origins = settings.cors_origins + [
     "http://localhost:3000",
     "https://talha-taskflow-web.vercel.app",
+    "https://taskflow-frontend-muhammad-talhas-projects-d748a6fc.vercel.app",
 ]
+# Deduplicate
+cors_origins = list(set(cors_origins))
 
 app.add_middleware(
     CORSMiddleware,
